@@ -280,8 +280,8 @@ const SITE = {
     a.innerHTML = icon + '<span>'+label+'</span>'; return a;
   }
 
-  // Build a vCard (VERSION:3.0) data URI from contact fields
-  function vcard(name, org, title, email, phone) {
+  // Build a vCard (VERSION:3.0) text block from contact fields
+  function vcardText(name, org, title, email, phone) {
     const esc = v => String(v||'').replace(/([,;\\])/g, '\\$1');
     const parts = (name||'').trim().split(/\s+/).filter(Boolean);
     const given = parts.slice(0, -1).join(' ');
@@ -292,10 +292,12 @@ const SITE = {
     if (phone) lines.push('TEL;TYPE=CELL,VOICE:'+esc(phone));
     if (email) lines.push('EMAIL;TYPE=INTERNET:'+esc(email));
     lines.push('END:VCARD');
-    return 'data:text/vcard;charset=utf-8,' + encodeURIComponent(lines.join('\r\n'));
+    return lines.join('\r\n');
   }
   function saveContactBtn(cls, name, org, title, email, phone) {
-    const a = btn(cls, CARD, 'Save Contact', vcard(name, org, title, email, phone));
+    // iOS Safari blocks navigation to data: URIs, so use a Blob object URL instead
+    const blob = new Blob([vcardText(name, org, title, email, phone)], { type: 'text/vcard' });
+    const a = btn(cls, CARD, 'Save Contact', URL.createObjectURL(blob));
     a.setAttribute('download', ((name||'contact')+(org?'-'+org:'')).replace(/\s+/g,'-')+'.vcf');
     return a;
   }
