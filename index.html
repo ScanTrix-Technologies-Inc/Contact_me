@@ -55,6 +55,7 @@ const SITE = {
     ],
     email: "skalpasi@savetrix.com",   // email for accounting enquiries
     phone: "+1 (647) 800-0374",        // ("" hides it)
+    company: "SaveTrix",               // company name for the saved contact card
     theme: { a: "#EB4747", b: "#F44444", dark: "#002253" }   // SaveTrix red + deep navy
   },
 
@@ -235,6 +236,7 @@ const SITE = {
   const GLOBE= '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20"/></svg>';
   const APPLE= '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.417 2.2-1.11 3-.76.87-2 .54-2.06.53-.07-1.02.44-2.1 1.06-2.79.7-.79 1.9-1.36 2.11-1.36.01.03 0 .01 0 .62zM20.7 17.2c-.35.8-.52 1.15-.97 1.86-.63.98-1.52 2.2-2.62 2.21-.98.01-1.23-.64-2.56-.63-1.33.01-1.6.64-2.58.63-1.1-.01-1.94-1.11-2.57-2.09-1.76-2.74-1.95-5.96-.86-7.67.77-1.22 1.99-1.94 3.14-1.94 1.17 0 1.9.64 2.87.64.94 0 1.51-.64 2.87-.64 1.02 0 2.1.56 2.87 1.52-2.52 1.38-2.11 4.98.41 6.15z"/></svg>';
   const PHONE= '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2Z"/></svg>';
+  const CARD  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M4.5 16.5c0-1.7 1.6-3 3.5-3s3.5 1.3 3.5 3M15 9h5M15 13h5"/></svg>';
 
   // ----- Hero -----
   document.getElementById('banner').style.background = grad(s.heroTheme);
@@ -278,6 +280,26 @@ const SITE = {
     a.innerHTML = icon + '<span>'+label+'</span>'; return a;
   }
 
+  // Build a vCard (VERSION:3.0) data URI from contact fields
+  function vcard(name, org, title, email, phone) {
+    const esc = v => String(v||'').replace(/([,;\\])/g, '\\$1');
+    const parts = (name||'').trim().split(/\s+/).filter(Boolean);
+    const given = parts.slice(0, -1).join(' ');
+    const family = parts.length > 1 ? parts[parts.length-1] : (parts[0]||'');
+    const lines = ['BEGIN:VCARD', 'VERSION:3.0', 'N:'+esc(family)+';'+esc(given)+';;;', 'FN:'+esc(name)];
+    if (org)   lines.push('ORG:'+esc(org));
+    if (title) lines.push('TITLE:'+esc(title));
+    if (phone) lines.push('TEL;TYPE=CELL,VOICE:'+esc(phone));
+    if (email) lines.push('EMAIL;TYPE=INTERNET:'+esc(email));
+    lines.push('END:VCARD');
+    return 'data:text/vcard;charset=utf-8,' + encodeURIComponent(lines.join('\r\n'));
+  }
+  function saveContactBtn(cls, name, org, title, email, phone) {
+    const a = btn(cls, CARD, 'Save Contact', vcard(name, org, title, email, phone));
+    a.setAttribute('download', ((name||'contact')+(org?'-'+org:'')).replace(/\s+/g,'-')+'.vcf');
+    return a;
+  }
+
   // ----- ScanTrix view -----
   const sv = document.getElementById('scantrix');
   applyTheme(sv, s.scantrix.theme);
@@ -293,6 +315,7 @@ const SITE = {
   if (s.scantrix.iosUrl)    sCtas.appendChild(btn('btn-dark', APPLE, 'Download on the App Store', s.scantrix.iosUrl));
   if (s.scantrix.email)     sCtas.appendChild(btn('btn-ghost', MAIL, s.scantrix.email, 'mailto:'+s.scantrix.email));
   if (s.scantrix.phone)     sCtas.appendChild(btn('btn-ghost', PHONE, s.scantrix.phone, 'tel:'+s.scantrix.phone.replace(/[^\d+]/g,'')));
+  if (s.scantrix.email || s.scantrix.phone) sCtas.appendChild(saveContactBtn('btn-ghost', s.name, s.scantrix.subhead||'ScanTrix', s.title, s.scantrix.email, s.scantrix.phone));
 
   // ----- Accounting view -----
   const av = document.getElementById('accounting');
@@ -304,6 +327,7 @@ const SITE = {
   const aCtas = document.getElementById('a_ctas');
   if (s.accounting.email) aCtas.appendChild(btn('btn-primary', MAIL, s.accounting.email, 'mailto:'+s.accounting.email));
   if (s.accounting.phone) aCtas.appendChild(btn('btn-dark', PHONE, s.accounting.phone, 'tel:'+s.accounting.phone.replace(/[^\d+]/g,'')));
+  if (s.accounting.email || s.accounting.phone) aCtas.appendChild(saveContactBtn('btn-ghost', s.name, s.accounting.company||'SaveTrix', s.title, s.accounting.email, s.accounting.phone));
 
   // ----- Footer -----
   const yr = new Date().getFullYear();
